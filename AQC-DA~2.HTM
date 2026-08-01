@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#f7f5f2; --panel:#ffffff; --border:#eae6e0; --text:#20180f; --muted:#7a7267;
+    --orange:#ff6a13; --orange-soft:#fff1e6; --black:#1a1512;
+    --good:#1a8f4c; --warn:#d97706; --bad:#d1372c;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;
+    font-size:14px;
+  }
+  #app{display:flex; min-height:100vh;}
+
+  #sidebar{
+    width:230px; flex:0 0 230px; background:var(--black); color:#fff;
+    padding:18px 12px; position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto;
+  }
+  #sidebar h1{font-size:16px; margin:4px 8px 1px; font-weight:800; color:#fff; letter-spacing:.01em;}
+  #sidebar h1 span{color:var(--orange);}
+  #sidebar .sub{font-size:10.5px; color:#9c9184; margin:0 8px 18px; text-transform:uppercase; letter-spacing:.05em;}
+  .nav-group{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:#8b8175; margin:16px 8px 6px; font-weight:700;}
+  .nav-btn{
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:8px 10px;
+    border:none; background:transparent; border-radius:8px; font-size:12.5px; color:#e8e3db;
+    cursor:pointer; margin-bottom:2px;
+  }
+  .nav-btn:hover{background:rgba(255,255,255,.08);}
+  .nav-btn.active{background:var(--orange); color:#1a1512; font-weight:700;}
+
+  #main{flex:1; min-width:0; padding:20px 26px 60px;}
+  #topbar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; margin-bottom:16px;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;
+    border-top:3px solid var(--orange);
+  }
+  .filter-block{display:flex; flex-direction:column; gap:4px; min-width:145px;}
+  .filter-block label{font-size:10px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:700;}
+  .chipbox{
+    border:1px solid var(--border); border-radius:8px; padding:6px; max-height:76px; overflow-y:auto;
+    display:flex; flex-wrap:wrap; gap:4px; background:#fbfaf8; min-width:150px;
+  }
+  .chip{
+    font-size:11px; padding:3px 8px; border-radius:100px; border:1px solid var(--border);
+    background:#fff; cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  .chip.on{background:var(--orange); border-color:var(--orange); color:#fff; font-weight:600;}
+
+  .dropdown{position:relative;}
+  .dropdown-btn{border:1px solid var(--border); border-radius:8px; background:#fff; padding:6px 10px;
+    font-size:11.5px; cursor:pointer; min-width:150px; max-width:190px; text-align:left; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .dropdown-btn:hover{border-color:var(--orange);}
+  .dropdown-btn:after{content:'▾'; float:right; color:var(--muted); margin-left:6px;}
+  .dropdown-panel{display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:30; background:#fff;
+    border:1px solid var(--border); border-radius:8px; padding:6px; min-width:230px; max-height:260px;
+    overflow-y:auto; box-shadow:0 8px 22px rgba(0,0,0,.14);}
+  .dropdown-panel.open{display:block;}
+  .dd-item{display:flex; align-items:center; gap:6px; font-size:12px; padding:5px 6px; border-radius:6px; cursor:pointer;}
+  .dd-item:hover{background:var(--orange-soft);}
+  .dd-item input{margin:0;}
+  .dd-empty{font-size:11.5px; color:var(--muted); padding:6px;}
+  #resetFilters{
+    border:1px solid var(--border); background:#fff; border-radius:8px; padding:8px 12px; font-size:12px;
+    cursor:pointer; color:var(--muted); height:32px;
+  }
+  #resetFilters:hover{color:var(--text); border-color:var(--orange);}
+  #nCount{font-size:11.5px; color:var(--muted); margin-left:auto; align-self:center;}
+
+  h2.page-title{font-size:19px; margin:2px 0 3px;}
+  p.page-desc{color:var(--muted); font-size:12.5px; margin:0 0 18px;}
+
+  .grid{display:grid; gap:14px;}
+  .grid.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin-bottom:16px;}
+  .grid.charts2{grid-template-columns:repeat(auto-fit,minmax(360px,1fr));}
+  .grid.charts1{grid-template-columns:1fr;}
+
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;}
+  .kpi .label{font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; font-weight:700;}
+  .kpi .value{font-size:25px; font-weight:800;}
+  .kpi .sub{font-size:11px; color:var(--muted); margin-top:4px;}
+
+  .chart-card h3{font-size:13px; margin:0 0 2px; font-weight:700;}
+  .chart-card .note{font-size:11px; color:var(--muted); margin:0 0 10px;}
+  .chart-wrap{position:relative; height:270px;}
+  .chart-wrap.tall{height:360px;}
+
+  .freqlist{list-style:none; padding:0; margin:0; font-size:12px; max-height:220px; overflow-y:auto;}
+  .freqlist li{padding:4px 0; border-bottom:1px dashed var(--border);}
+  .freqlist li:last-child{border-bottom:none;}
+
+  .ftable{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .ftable th{text-align:left; padding:5px 4px; border-bottom:1px solid var(--border); color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.03em;}
+  .ftable td{padding:5px 4px; border-bottom:1px dashed var(--border);}
+
+  .page{display:none;} .page.active{display:block;}
+  .loading, .empty{color:var(--muted); font-size:13px; padding:30px; text-align:center;}
+  footer.note{color:var(--muted); font-size:11px; margin-top:26px; line-height:1.6;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <h1>Fluxo<span>·</span>AQC</h1>
+    <p class="sub">Avaliação do Quadro de Colaboradores</p>
+
+    <div class="nav-group">Visão Geral</div>
+    <button class="nav-btn active" data-page="v-dedic">Dedicação &amp; Externo</button>
+    <button class="nav-btn" data-page="v-saida">Saída &amp; Coordenação</button>
+    <button class="nav-btn" data-page="v-cargo">Mudança de Cargo</button>
+
+    <div class="nav-group">Interesse por Cargo</div>
+    <button class="nav-btn" data-page="a-interesse">Por Área</button>
+
+    <div class="nav-group">Individual</div>
+    <button class="nav-btn" data-page="f-ficha">Fichamento</button>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="filter-block">
+        <label>Ciclo (AQC) — sempre 1 selecionado</label>
+        <div class="chipbox" id="f-ciclo"></div>
+      </div>
+      <div class="filter-block" id="f-nome-block">
+        <label id="f-nome-label">Nome</label>
+        <div class="dropdown" id="f-nome-dd"><button type="button" class="dropdown-btn" id="f-nome-btn">Todos</button><div class="dropdown-panel" id="f-nome-panel"></div></div>
+      </div>
+      <div class="filter-block" id="f-area-block">
+        <label>Área da Fluxo</label>
+        <div class="chipbox" id="f-area"></div>
+      </div>
+      <div class="filter-block" id="f-pame-block">
+        <label>PAME de entrada</label>
+        <div class="chipbox" id="f-pame"></div>
+      </div>
+      <div class="filter-block" id="f-genero-block">
+        <label>Identidade de gênero</label>
+        <div class="dropdown" id="f-genero-dd"><button type="button" class="dropdown-btn" id="f-genero-btn">Todos</button><div class="dropdown-panel" id="f-genero-panel"></div></div>
+      </div>
+      <div class="filter-block" id="f-orient-block">
+        <label>Orientação sexual</label>
+        <div class="dropdown" id="f-orient-dd"><button type="button" class="dropdown-btn" id="f-orient-btn">Todos</button><div class="dropdown-panel" id="f-orient-panel"></div></div>
+      </div>
+      <div class="filter-block" id="f-areafam-block">
+        <label>Área (interesse por cargo) — sempre 1 selecionada</label>
+        <div class="chipbox" id="f-areafam"></div>
+      </div>
+      <button id="resetFilters">Limpar filtros</button>
+      <div id="nCount"></div>
+    </div>
+
+    <div id="content"><div class="loading">Carregando respostas das planilhas da AQC…</div></div>
+    <footer class="note" id="footNote"></footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script>
+(function(){
+
+/* =========================================================================
+   CONFIG
+   ========================================================================= */
+var CYCLES = [
+  { id:'dez25', label:'Dezembro/25', fileId:'1hdsQiFEC_OBLU6Uo68yIhlRbJ3JvofvKTzRvnOzMAlQ' },
+  { id:'mar26', label:'Março/26',    fileId:'1z37Cq-MWZOcyaeGs9P-DJxCm65aoZPHZSuAwvGNCw9U' },
+  { id:'mai26', label:'Maio/26',     fileId:'1OovO_KVKB3_rxikdxKGkuOtXDiPl7SDsruaV-YbYuwc' },
+  { id:'jul26', label:'Julho/26',    fileId:'1mhJtXQxxHfGdaSq4dzfxpWqP2dEjJK1bTSpyvmMXAng' }
+];
+var DRIVE_TOOL = 'mcp__1d7ec9dc-7267-4e2e-970a-b7f91d66d4f7__download_file_content';
+var ORANGE = '#ff6a13';
+
+var AREA_Q4_DISPLAY = {
+  ACE:'ACE', CCE:'CCE', COMERCIAL:'COM', MNP:'MNP', PRO:'PRO', QAB:'QAB',
+  'Área de Gestão (Coordenadores e Diretores)':'Gestão (Coord./Diretores)',
+  'Área de Suporte Tático (Assessores, Responsável PAME e SFE)':'Suporte Tático'
+};
+
+/* Cargos "canônicos", sempre com a nomenclatura do ciclo Julho/26 (a mais atual e completa).
+   Ciclos antigos usam nomes de cargo diferentes; quando um cargo de um ciclo antigo não bate com
+   nada aqui (via normCargoKey), ele fica sem correspondência (campo em branco) — a pedido do usuário. */
+var CARGO_CANON = [
+  'Trainee','Não tenho certeza','Coordenador/a de Operações',
+  'Consultor/a de Projetos','Gerente de Projetos','Coordenador/a de Projetos',
+  'Consultor/a Comercial','Gerente Comercial','Coordenador/a Comercial',
+  'Assessor/a de Gerência (Adm-Fin)','Assessor/a de Controladoria (Adm-Fin)','Diretor/a de Adm-Fin',
+  'Analista de Pessoas (Gente&Gestão)','Head de Diversidade e Inclusão (Gente&Gestão)','Employer Branding (Gente&Gestão)','Responsável do PAME','Ouvidoria','Diretor/a de G&G',
+  'Assessor/a de Relacionamentos (Presidência)','Presidente',
+  'Assessor/a de Marketing (Marketing)','Diretor/a de Marketing & Vendas',
+  'Analista de Conformidade (Projetos)','Analista de Dados (Projetos)','Diretor/a de Projetos',
+  'Coordenador/a Geral (SEF)','Coordenador/a de Parcerias (SEF)','Coordenador/a de Logística (SEF)','Coordenador/a de Conteúdo (SEF)'
+];
+/* "Coordenador/a de Operações" existe no dropdown de Cargo Atual (Q5) mas não aparece na lista de
+   Áreas que o usuário passou (nem no grid de interesse, que separa Coordenador/a de Projetos e
+   Coordenador/a Comercial) — por isso fica fora de qualquer AREA_FAMILY, mas ainda é reconhecido
+   como cargo atual válido (ex.: na ficha individual). "Diretor/a de G&G" existe no dropdown de
+   Cargo Atual e no grid de interesse, mas não foi citado na lista de cargos de G&G — foi
+   adicionado à família G&G abaixo por analogia com as outras diretorias (cada uma tem seu Diretor). */
+var INTEREST_CARGO_LIST = CARGO_CANON.filter(function(c){ return c!=='Trainee' && c!=='Não tenho certeza'; });
+
+var AREA_FAMILIES = [
+  { id:'proj',    label:'Coordenação de Projetos', cargos:['Consultor/a de Projetos','Gerente de Projetos','Coordenador/a de Projetos'] },
+  { id:'com',     label:'Coordenação Comercial',    cargos:['Consultor/a Comercial','Gerente Comercial','Coordenador/a Comercial'] },
+  { id:'admfin',  label:'Adm-Fin',                  cargos:['Assessor/a de Gerência (Adm-Fin)','Assessor/a de Controladoria (Adm-Fin)','Diretor/a de Adm-Fin'] },
+  { id:'gg',      label:'Gente & Gestão',           cargos:['Analista de Pessoas (Gente&Gestão)','Head de Diversidade e Inclusão (Gente&Gestão)','Employer Branding (Gente&Gestão)','Responsável do PAME','Ouvidoria','Diretor/a de G&G'] },
+  { id:'pres',    label:'Presidência',              cargos:['Assessor/a de Relacionamentos (Presidência)','Presidente'] },
+  { id:'mkt',     label:'Marketing e Vendas',       cargos:['Assessor/a de Marketing (Marketing)','Diretor/a de Marketing & Vendas'] },
+  { id:'projdir', label:'Projetos (Diretoria)',     cargos:['Analista de Conformidade (Projetos)','Analista de Dados (Projetos)','Diretor/a de Projetos'] },
+  { id:'sef',     label:'SEF (Semana Fluxo)',       cargos:['Coordenador/a Geral (SEF)','Coordenador/a de Parcerias (SEF)','Coordenador/a de Logística (SEF)','Coordenador/a de Conteúdo (SEF)'] }
+];
+
+var OPTS_MOTIVOS_SAIDA = ['Conciliação com a carga acadêmica / falta de tempo','Falta de identificação com a área/atividades atuais','Questões de integração/relacionamento','Falta de reconhecimento ou oportunidades de crescimento','Insatisfação com a gestão/liderança','Prioridades externas (estágio, intercâmbio, outras atividades)','Encerramento natural do ciclo (formatura, fim de curso)','Questões pessoais/saúde','Prefiro não responder'];
+var OPTS_MELHORIA_PREP = ['Conversa com lideranças','Maior conhecimento sobre o cargo almejado','Maior reconhecimento dentro da empresa','Mais feedbacks positivos/construtivos','Capacitações','Acompanhamento/mentoria','Carga de trabalho mais clara','Nada, me sinto suficientemente preparado'];
+
+/* ============================= CSV PARSER =============================== */
+function parseCSV(text){
+  var rows = []; var row = []; var field = ''; var inQuotes = false;
+  for (var i=0; i<text.length; i++){
+    var c = text[i];
+    if (inQuotes){
+      if (c === '"'){ if (text[i+1] === '"'){ field += '"'; i++; } else { inQuotes = false; } }
+      else { field += c; }
+    } else {
+      if (c === '"'){ inQuotes = true; }
+      else if (c === ','){ row.push(field); field=''; }
+      else if (c === '\r'){ }
+      else if (c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else { field += c; }
+    }
+  }
+  if (field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(function(r){ return !(r.length===1 && r[0]==='' ); });
+}
+function base64ToUtf8(b64){
+  var bin = atob(b64);
+  var bytes = new Uint8Array(bin.length);
+  for (var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+/* ============================= HEADER MATCH ============================= */
+/* O formulário da AQC não usa prefixos "Q1 -" como o da PCO — os cabeçalhos são o texto puro da
+   pergunta (às vezes com a descrição colada via quebra de linha dentro da própria célula). Por
+   isso o casamento é por "contém" (substring), normalizando espaços/quebras de linha antes. */
+function normH(h){ return (h||'').replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim(); }
+function findColAll(headers, substr){
+  var out = []; var s = substr.toLowerCase();
+  for (var i=0;i<headers.length;i++){ if (normH(headers[i]).toLowerCase().indexOf(s) !== -1) out.push(i); }
+  return out;
+}
+function findColContains(headers, substr, occurrence){
+  var all = findColAll(headers, substr);
+  var idx = (occurrence||1) - 1;
+  return all.length > idx ? all[idx] : -1;
+}
+
+/* ===================== NORMALIZAÇÃO DE NOMES DE CARGO ===================== */
+/* Une variações de grafia entre ciclos ("Consultor de Projetos" vs "Consultor/a de Projetos",
+   "Gente&Gestão" vs "Gente & Gestão" vs "G&G" etc.) para bater contra a lista canônica (Julho/26). */
+function normCargoKey(s){
+  s = (s||'').toLowerCase();
+  try{ s = s.normalize('NFD').replace(/[̀-ͯ]/g,''); }catch(e){}
+  s = s.replace(/\//g,' ');
+  s = s.replace(/gente\s*&?\s*gestao/g,'gg').replace(/g\s*&\s*g/g,'gg');
+  s = s.replace(/marketing\s*&\s*vendas|marketing\s+e\s+vendas/g,'mktvendas');
+  s = s.replace(/adm-?fin|administrativo-?financeiro/g,'admfin');
+  s = s.replace(/\bsfe\b/g,'sef');
+  s = s.replace(/assessor\s+de\s+dados/g,'analista de pessoas'); // rename explícito (pedido do usuário)
+  // normaliza flexão de gênero em substantivos de cargo ("consultora" -> "consultor" etc.) pra
+  // "Consultora de Comercial" (ciclos antigos) bater com "Consultor/a Comercial" (canônico)
+  s = s.replace(/\b(consultor|coordenador|diretor|assessor)a\b/g,'$1');
+  s = s.replace(/[()&,.]/g,' ');
+  var stop = {de:1,da:1,do:1,dos:1,das:1,e:1,a:1,o:1};
+  var toks = s.split(/[\s\-]+/).filter(function(w){ return w && !stop[w]; });
+  return toks.join('');
+}
+var CARGO_KEY_TO_LABEL = {};
+CARGO_CANON.forEach(function(label){ CARGO_KEY_TO_LABEL[normCargoKey(label)] = label; });
+function canonicalCargoLabel(raw){
+  if (!raw) return '';
+  var low = raw.toLowerCase();
+  // SEF teve o mesmo cargo grafado como "...de Marketing (SEF)" em algumas perguntas/ciclos e
+  // "...de Conteúdo (SEF)" em outras — tratamos como o mesmo cargo (canônico: "de Conteúdo").
+  if (low.indexOf('coordenador') !== -1 && low.indexOf('sef') !== -1 && (low.indexOf('marketing') !== -1 || low.indexOf('contendo') !== -1 || low.indexOf('conteúdo') !== -1 || low.indexOf('conteudo') !== -1)){
+    return 'Coordenador/a de Conteúdo (SEF)';
+  }
+  return CARGO_KEY_TO_LABEL[normCargoKey(raw)] || '';
+}
+var CARGO_TO_FAMILY = {};
+AREA_FAMILIES.forEach(function(fam){ fam.cargos.forEach(function(c){ CARGO_TO_FAMILY[normCargoKey(c)] = fam; }); });
+function familyOfCargo(canonicalLabel){ return CARGO_TO_FAMILY[normCargoKey(canonicalLabel)] || null; }
+
+function buildInterestCols(headers){
+  var map = {};
+  for (var i=0;i<headers.length;i++){
+    var h = normH(headers[i]);
+    if (h.toLowerCase().indexOf('classifique seu interesse') === -1) continue;
+    var m = h.match(/\[(.+)\]/);
+    if (!m) continue;
+    var canon = canonicalCargoLabel(m[1]) || m[1];
+    map[normCargoKey(canon)] = i;
+  }
+  return map;
+}
+
+/* trunca respostas descritivas longas em "Rótulo - explicação..." -> "Rótulo" */
+function shortLabel(raw){
+  if (!raw) return raw;
+  var s = String(raw).trim();
+  var m = s.split(/\s[-–]\s/);
+  return m[0].trim();
+}
+/* Divide células de checkbox respeitando vírgulas DENTRO das próprias opções (ex.: "Prioridades
+   externas (estágio, intercâmbio, outras atividades)"), usando a lista de opções conhecidas da
+   pergunta em vez de um split(',') ingênuo. */
+function splitByOptions(raw, options){
+  if (!raw) return [];
+  var remaining = raw;
+  var out = [];
+  var sorted = options.slice().sort(function(a,b){return b.length-a.length;});
+  var guard = 0;
+  while (remaining.length && guard++ < 200){
+    remaining = remaining.replace(/^,\s*/, '');
+    if (!remaining) break;
+    var matched = null;
+    for (var i=0;i<sorted.length;i++){ if (remaining.indexOf(sorted[i]) === 0){ matched = sorted[i]; break; } }
+    if (matched){ out.push(matched); remaining = remaining.slice(matched.length); }
+    else {
+      var cut = remaining.indexOf(',');
+      if (cut === -1){ out.push(remaining.trim()); remaining=''; }
+      else { out.push(remaining.slice(0,cut).trim()); remaining = remaining.slice(cut+1); }
+    }
+  }
+  return out.filter(Boolean);
+}
+function slug(s){ return String(s||'').toLowerCase().normalize ? String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') : String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+/* ============================= DATA STATE ================================ */
+var STATE = { cycles:{}, filters:{ area:{}, pame:{}, genero:{}, orient:{}, nome:{} }, cicloId: CYCLES[CYCLES.length-1].id, areaFamily:null, charts:[] };
+function destroyCharts(){ STATE.charts.forEach(function(c){ try{ c.destroy(); }catch(e){} }); STATE.charts = []; }
+function currentCycle(){ return STATE.cycles[STATE.cicloId]; }
+
+/* ============================= LOAD =======================================
+   Versão PÚBLICA (fora do Cowork): busca o CSV direto do Google Sheets via fetch().
+   Só funciona com a planilha compartilhada como "Qualquer pessoa com o link" (Leitor).
+   Usa o endpoint gviz/tq porque o /export?format=csv não libera CORS entre domínios. */
+function csvExportUrl(fileId){
+  return 'https://docs.google.com/spreadsheets/d/' + fileId + '/gviz/tq?tqx=out:csv&gid=0&t=' + Date.now();
+}
+function fetchWithTimeout(url, opts, ms){
+  var controller = new AbortController();
+  var timer = setTimeout(function(){ controller.abort(); }, ms);
+  return fetch(url, Object.assign({}, opts, { signal: controller.signal }))
+    .finally(function(){ clearTimeout(timer); });
+}
+function loadCycle(cfg){
+  return fetchWithTimeout(csvExportUrl(cfg.fileId), { credentials:'omit', cache:'no-store' }, 20000)
+    .then(function(r){
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return r.text();
+    })
+    .then(function(csvText){
+      if (/^\s*<(!DOCTYPE|html)/i.test(csvText)){
+        throw new Error('a planilha não parece estar compartilhada como "Qualquer pessoa com o link"');
+      }
+      var table = parseCSV(csvText);
+      var headers = table.length ? table[0] : [];
+      var rows = table.slice(1).filter(function(r){ return r.some(function(v){return v && v.trim()!=='';}); });
+      return { id:cfg.id, label:cfg.label, headers:headers, rows:rows };
+    })
+    .catch(function(err){
+      var msg = (err && err.name === 'AbortError') ? 'tempo esgotado (20s) buscando a planilha' : String(err && err.message || err);
+      return { id:cfg.id, label:cfg.label, headers:[], rows:[], error: msg };
+    });
+}
+
+function buildIndex(cycle){
+  var h = cycle.headers;
+  cycle.col = {
+    nome: findColContains(h,'nome'),
+    pame: findColContains(h,'pame de entrada'),
+    area: findColContains(h,'área na fluxo'),
+    cargo: findColContains(h,'cargo atual'),
+    genero: findColContains(h,'identidade de gênero'),
+    orient: findColContains(h,'orientação sexual'),
+    desemp: findColContains(h,'bom desempenho na fluxo e na faculdade'),
+    horasFluxo: findColContains(h,'dedicar a fluxo esse período'),
+    horasProjetos: findColContains(h,'dedicar a projetos esse período'),
+    ativRem: findColContains(h,'você realiza alguma atividade'),
+    processoSel: findColContains(h,'processo seletivo de outra empresa'),
+    buscaAtiv: findColContains(h,'em quanto tempo você pretende buscar'),
+    outraIniciativa: findColContains(h,'outra iniciativa da ufrj'),
+    saidaData: findColContains(h,'quando pretende sair da fluxo'),
+    motivosSaida: findColContains(h,'caso pretenda sair da fluxo nos próximos'),
+    interesseOutraCoord: findColContains(h,'tem interesse de atuar em outra coordenação'),
+    quaisCoordInteresse: findColContains(h,'quais outras coordenações você tem interesse'),
+    motivosOutraCoord: findColContains(h,'querer atuar em outra coordenação'),
+    pretendeMudar: findColContains(h,'você pretende mudar de cargo no futuro'),
+    motivoPretensao: findColContains(h,'sua pretensão à mudança de cargo é relacionada'),
+    melhoriaPrep1: findColContains(h,'poderia fazer para você se sentir mais preparado',1),
+    melhoriaPrep2: findColContains(h,'poderia fazer para você se sentir mais preparado',2),
+    proximoCargo: findColContains(h,'qual o próximo cargo que você pretende atingir'),
+    proximoCargoData: findColContains(h,'quando você pretende ir para esse próximo cargo'),
+    certeza: findColContains(h,'tenho certeza que essa é minha escolha'),
+    conhecAtrib: findColContains(h,'tenho conhecimento das atribuições'),
+    conhecPrep: findColContains(h,'considero que sei as formas de me preparar'),
+    avaliaPrep: findColContains(h,'classifique como se sente'),
+    participaDiretoria: findColContains(h,'participa de alguma diretoria'),
+    interesseOutraDiretoria: findColContains(h,'interesse de atuar em alguma')
+  };
+  cycle.interestCols = buildInterestCols(h);
+  cycle.byName = {};
+  cycle.rows.forEach(function(row){
+    var n = (row[cycle.col.nome]||'').trim();
+    if (n && !cycle.byName[n]) cycle.byName[n] = row;
+  });
+  return cycle;
+}
+
+function val(cycle,row,key){ var i=cycle.col[key]; if(i===undefined||i<0) return ''; return row[i]!==undefined?row[i]:''; }
+function numLin(cycle,row,key){ var v=parseFloat(val(cycle,row,key)); return isNaN(v)?NaN:v; }
+function interestVal(cycle,row,cargoLabel){ var i=cycle.interestCols[normCargoKey(cargoLabel)]; if(i===undefined||i<0) return ''; return row[i]!==undefined?row[i]:''; }
+function areaRaw(cycle,row){ return (val(cycle,row,'area')||'').trim(); }
+function cargoAtualCanon(cycle,row){ return canonicalCargoLabel(val(cycle,row,'cargo')); }
+function proximoCargoCanon(cycle,row){
+  var raw = val(cycle,row,'proximoCargo'); if (!raw) return '';
+  if (normCargoKey(raw) === normCargoKey('Não tenho certeza')) return 'Não tenho certeza';
+  return canonicalCargoLabel(raw);
+}
+
+/* ============================= FILTROS ==================================== */
+function isSelected(filterName, value){
+  var f = STATE.filters[filterName];
+  var anyOn = Object.keys(f).some(function(k){return f[k];});
+  if (!anyOn) return true;
+  return !!f[value];
+}
+function singleSelected(filterName){ var f=STATE.filters[filterName]; var keys=Object.keys(f).filter(function(k){return f[k];}); return keys.length===1 ? keys[0] : null; }
+
+function passesFilters(cycle,row,opts){
+  opts = opts || {};
+  if (!isSelected('area', areaRaw(cycle,row))) return false;
+  if (!isSelected('pame', (val(cycle,row,'pame')||'').trim())) return false;
+  if (!isSelected('genero', shortLabel(val(cycle,row,'genero')))) return false;
+  if (!isSelected('orient', shortLabel(val(cycle,row,'orient')))) return false;
+  if (!isSelected('nome', (val(cycle,row,'nome')||'').trim())) return false;
+  return true;
+}
+function eachFilteredRow(fn, opts){
+  var cycle = currentCycle(); if (!cycle || cycle.error) return;
+  cycle.rows.forEach(function(row){ if (passesFilters(cycle,row,opts)) fn(cycle,row); });
+}
+function passesFiltersExcept(cycle,row,exceptName){
+  if (exceptName!=='area' && !isSelected('area', areaRaw(cycle,row))) return false;
+  if (exceptName!=='pame' && !isSelected('pame', (val(cycle,row,'pame')||'').trim())) return false;
+  if (exceptName!=='genero' && !isSelected('genero', shortLabel(val(cycle,row,'genero')))) return false;
+  if (exceptName!=='orient' && !isSelected('orient', shortLabel(val(cycle,row,'orient')))) return false;
+  if (exceptName!=='nome' && !isSelected('nome', (val(cycle,row,'nome')||'').trim())) return false;
+  return true;
+}
+function uniqueValsFacet(getter, exceptName){
+  var set = {}; var cyc = currentCycle(); if (!cyc || cyc.error) return [];
+  cyc.rows.forEach(function(row){ if (!passesFiltersExcept(cyc,row,exceptName)) return; var v=getter(cyc,row); if (v) set[v]=true; });
+  return Object.keys(set).sort();
+}
+
+/* ============================= AGREGAÇÃO =================================== */
+function freqOf(getterFn, splitMode, opts){
+  var counts = {}, total = 0;
+  eachFilteredRow(function(c,r){
+    var raw = getterFn(c,r); if (!raw) return;
+    var parts;
+    if (Array.isArray(splitMode)) parts = splitByOptions(raw, splitMode);
+    else if (splitMode) parts = raw.split(',').map(function(s){return s.trim();}).filter(Boolean);
+    else parts = [String(raw).trim()];
+    parts.forEach(function(p){ if (p) counts[p] = (counts[p]||0)+1; });
+    total++;
+  }, opts);
+  return { counts:counts, total:total };
+}
+function freqBinaryNaoOutro(getterFn, opts){
+  var counts = {'Não':0,'Sim':0}, total = 0;
+  eachFilteredRow(function(c,r){
+    var raw = (getterFn(c,r)||'').trim(); if (!raw) return;
+    total++;
+    if (raw.toLowerCase() === 'não') counts['Não']++; else counts['Sim']++;
+  }, opts);
+  return { counts:counts, total:total };
+}
+function distributionOf14(getterFn, opts){
+  var counts = {1:0,2:0,3:0,4:0}, total = 0;
+  eachFilteredRow(function(c,r){ var v = getterFn(c,r); if (isNaN(v) || v<1 || v>4) return; counts[Math.round(v)]++; total++; }, opts);
+  return { counts:counts, total:total };
+}
+function monthSortKey(s){ var m = /^(\d{2})\/(\d{4})$/.exec((s||'').trim()); if (!m) return null; return parseInt(m[2],10)*100+parseInt(m[1],10); }
+/* O campo de Mês/Ano de saída/próximo-cargo (Q17/Q32) vem em formato DIFERENTE conforme o ciclo:
+   Julho/26 usa uma Lista Suspensa só de Mês/Ano ("10/2027"), mas Dez/25, Março/26 e Maio/26 usam
+   uma data completa ("22/04/2026") — mesma pergunta, formato de resposta diferente. Extrai
+   mês/ano de QUALQUER um dos dois formatos, senão os 3 ciclos mais antigos ficavam de fora do
+   gráfico (só apareciam contagens pra Julho/26, mesmo com a pergunta preenchida nos outros). */
+function extractMonthYear(raw){
+  var s = (raw||'').trim();
+  var y;
+  var m = /^(\d{2})\/(\d{4})$/.exec(s);           // MM/YYYY (Julho/26)
+  if (m) { y = parseInt(m[2],10); return (y>=2020 && y<=2035) ? (m[1]+'/'+m[2]) : null; }
+  var m2 = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);  // DD/MM/YYYY (ciclos anteriores)
+  if (m2) { y = parseInt(m2[3],10); return (y>=2020 && y<=2035) ? (m2[2]+'/'+m2[3]) : null; } // descarta erros de digitação óbvios (ex.: ano "0026")
+  return null;
+}
+/* Série mensal genérica (Mês/Ano -> contagem), usada tanto pra Previsão de Saída (Q17) quanto
+   pra Previsão de Mudança de Cargo (Q32) — mesma pergunta, dois formatos de resposta possíveis. */
+function monthlySeries(fieldKey){
+  var counts = {};
+  eachFilteredRow(function(c,r){ var my = extractMonthYear(val(c,r,fieldKey)); if (!my) return; counts[my]=(counts[my]||0)+1; });
+  var keys = Object.keys(counts);
+  keys.sort(function(a,b){ return monthSortKey(a)-monthSortKey(b); });
+  return { labels:keys, data:keys.map(function(k){return counts[k];}) };
+}
+
+/* ============================= UI: FILTER CHIPS / DROPDOWNS ================= */
+function buildChipBox(containerId, filterName, values, displayFn){
+  var box = document.getElementById(containerId); if (!box) return;
+  box.innerHTML = '';
+  values.forEach(function(v){
+    var chip = document.createElement('div');
+    chip.className = 'chip' + (STATE.filters[filterName][v] ? ' on' : '');
+    chip.textContent = displayFn ? displayFn(v) : v;
+    chip.onclick = function(){ STATE.filters[filterName][v] = !STATE.filters[filterName][v]; renderAll(); };
+    box.appendChild(chip);
+  });
+}
+var UI = { suppressOutsideClose:false };
+function buildDropdownFilter(prefix, filterName, values, displayFn){
+  var btn = document.getElementById(prefix+'-btn');
+  var panel = document.getElementById(prefix+'-panel');
+  if (!btn || !panel) return;
+  var wasOpen = panel.classList.contains('open');
+  panel.innerHTML = '';
+  if (!values.length){ panel.innerHTML = '<div class="dd-empty">Sem opções para o filtro atual.</div>'; }
+  values.forEach(function(v){
+    var row = document.createElement('label'); row.className = 'dd-item';
+    var cb = document.createElement('input'); cb.type = 'checkbox';
+    cb.checked = !!STATE.filters[filterName][v];
+    cb.onchange = function(){ UI.suppressOutsideClose = true; STATE.filters[filterName][v] = cb.checked; renderAll(); };
+    row.appendChild(cb);
+    row.appendChild(document.createTextNode(' ' + (displayFn ? displayFn(v) : v)));
+    panel.appendChild(row);
+  });
+  var selected = values.filter(function(v){ return STATE.filters[filterName][v]; });
+  btn.textContent = !selected.length ? 'Todos' : (selected.length===1 ? (displayFn?displayFn(selected[0]):selected[0]) : selected.length+' selecionados');
+  btn.onclick = function(e){
+    e.stopPropagation();
+    var isOpen = panel.classList.contains('open');
+    document.querySelectorAll('.dropdown-panel.open').forEach(function(p){ p.classList.remove('open'); });
+    if (!isOpen) panel.classList.add('open');
+  };
+  if (wasOpen) panel.classList.add('open');
+}
+/* Dropdown de seleção ÚNICA (rádio), usado no filtro de Nome — sempre no máximo 1 pessoa
+   selecionada por vez (obrigatório na página de Fichamento). */
+function buildDropdownFilterSingle(prefix, filterName, values, displayFn){
+  var btn = document.getElementById(prefix+'-btn');
+  var panel = document.getElementById(prefix+'-panel');
+  if (!btn || !panel) return;
+  var wasOpen = panel.classList.contains('open');
+  panel.innerHTML = '';
+  var allRow = document.createElement('label'); allRow.className='dd-item';
+  var cbAll = document.createElement('input'); cbAll.type='radio'; cbAll.name=prefix+'-radio';
+  cbAll.checked = !values.some(function(v){return STATE.filters[filterName][v];});
+  cbAll.onchange = function(){ UI.suppressOutsideClose = true; STATE.filters[filterName] = {}; renderAll(); };
+  allRow.appendChild(cbAll); allRow.appendChild(document.createTextNode(' Todos'));
+  panel.appendChild(allRow);
+  if (!values.length){ panel.innerHTML += '<div class="dd-empty">Sem opções para o filtro atual.</div>'; }
+  values.forEach(function(v){
+    var row = document.createElement('label'); row.className = 'dd-item';
+    var cb = document.createElement('input'); cb.type = 'radio'; cb.name = prefix+'-radio';
+    cb.checked = !!STATE.filters[filterName][v];
+    cb.onchange = function(){ UI.suppressOutsideClose = true; STATE.filters[filterName] = {}; STATE.filters[filterName][v] = true; renderAll(); };
+    row.appendChild(cb);
+    row.appendChild(document.createTextNode(' ' + (displayFn ? displayFn(v) : v)));
+    panel.appendChild(row);
+  });
+  var sel = values.filter(function(v){ return STATE.filters[filterName][v]; })[0];
+  btn.textContent = sel ? (displayFn?displayFn(sel):sel) : 'Todos';
+  btn.onclick = function(e){
+    e.stopPropagation();
+    var isOpen = panel.classList.contains('open');
+    document.querySelectorAll('.dropdown-panel.open').forEach(function(p){ p.classList.remove('open'); });
+    if (!isOpen) panel.classList.add('open');
+  };
+  if (wasOpen) panel.classList.add('open');
+}
+document.addEventListener('click', function(e){
+  if (UI.suppressOutsideClose){ UI.suppressOutsideClose = false; return; }
+  document.querySelectorAll('.dropdown-panel.open').forEach(function(p){
+    if (!p.parentElement.contains(e.target)) p.classList.remove('open');
+  });
+});
+
+var GROUP_OF_PAGE = { 'v-dedic':'geral', 'v-saida':'geral', 'v-cargo':'geral', 'a-interesse':'area', 'f-ficha':'ficha' };
+function toggleBlock(id, show){ var el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; }
+function applyFilterBarForGroup(group){
+  toggleBlock('f-nome-block', group==='geral' || group==='ficha');
+  toggleBlock('f-area-block', group==='geral');
+  toggleBlock('f-pame-block', group==='geral');
+  toggleBlock('f-genero-block', group==='geral');
+  toggleBlock('f-orient-block', group==='geral');
+  toggleBlock('f-areafam-block', group==='area');
+  var lab = document.getElementById('f-nome-label');
+  if (lab) lab.textContent = group==='ficha' ? 'Nome (obrigatório)' : 'Nome';
+}
+function buildCicloControl(){
+  var box = document.getElementById('f-ciclo'); if (!box) return;
+  box.innerHTML = '';
+  CYCLES.forEach(function(cfg){
+    var chip = document.createElement('div');
+    chip.className = 'chip' + (STATE.cicloId===cfg.id ? ' on' : '');
+    chip.textContent = cfg.label;
+    chip.onclick = function(){
+      if (STATE.cicloId === cfg.id) return;
+      STATE.cicloId = cfg.id;
+      STATE.filters = { area:{}, pame:{}, genero:{}, orient:{}, nome:{} };
+      STATE.areaFamily = null;
+      renderAll();
+    };
+    box.appendChild(chip);
+  });
+}
+function setupFilters(){
+  var group = GROUP_OF_PAGE[currentPage];
+  var cyc = currentCycle(); if (!cyc) return;
+
+  var nomes = uniqueValsFacet(function(c,r){ return (val(c,r,'nome')||'').trim(); }, 'nome').filter(Boolean);
+  var areas = uniqueValsFacet(areaRaw, 'area');
+  var pames = uniqueValsFacet(function(c,r){ return (val(c,r,'pame')||'').trim(); }, 'pame');
+  var generos = uniqueValsFacet(function(c,r){ return shortLabel(val(c,r,'genero')); }, 'genero');
+  var orients = uniqueValsFacet(function(c,r){ return shortLabel(val(c,r,'orient')); }, 'orient');
+
+  buildDropdownFilterSingle('f-nome','nome', nomes);
+  buildChipBox('f-area','area', areas, function(a){ return AREA_Q4_DISPLAY[a]||a; });
+  buildChipBox('f-pame','pame', pames);
+  buildDropdownFilter('f-genero','genero', generos);
+  buildDropdownFilter('f-orient','orient', orients);
+
+  if (group === 'area'){
+    if (!STATE.areaFamily) STATE.areaFamily = AREA_FAMILIES[0].id;
+    var box = document.getElementById('f-areafam'); box.innerHTML = '';
+    AREA_FAMILIES.forEach(function(fam){
+      var chip = document.createElement('div');
+      chip.className = 'chip' + (STATE.areaFamily===fam.id ? ' on' : '');
+      chip.textContent = fam.label;
+      chip.onclick = function(){ STATE.areaFamily = fam.id; renderAll(); };
+      box.appendChild(chip);
+    });
+  }
+  if (group === 'ficha' && !singleSelected('nome') && nomes.length){
+    STATE.filters.nome = {}; STATE.filters.nome[nomes[0]] = true;
+  }
+
+  document.getElementById('resetFilters').onclick = function(){
+    STATE.filters = { area:{}, pame:{}, genero:{}, orient:{}, nome:{} };
+    renderAll();
+  };
+}
+
+/* ============================= CHART HELPERS =============================== */
+function mkChart(canvasId, cfg){
+  var ctx = document.getElementById(canvasId); if (!ctx) return null;
+  var chart = new Chart(ctx, cfg); STATE.charts.push(chart); return chart;
+}
+function hexToRgb(hex){
+  var h = String(hex||'').replace('#','');
+  if (h.length===3) h = h.split('').map(function(c){return c+c;}).join('');
+  var num = parseInt(h,16) || 0;
+  return { r:(num>>16)&255, g:(num>>8)&255, b:num&255 };
+}
+function distShades(hex){
+  var c = hexToRgb(hex);
+  return [0.32,0.55,0.78,1].map(function(a){ return 'rgba('+c.r+','+c.g+','+c.b+','+a+')'; });
+}
+function emptyCard(canvasId, msg){
+  var el = document.getElementById(canvasId);
+  if (el && el.parentElement) el.parentElement.innerHTML = '<div class="empty">'+(msg||'Sem dados para este ciclo/seleção.')+'</div>';
+}
+function freqCard(canvasId, freq, color, pct, top){
+  if (!freq.total){ emptyCard(canvasId); return; }
+  var entries = Object.keys(freq.counts).map(function(k){return [k,freq.counts[k]];}).sort(function(a,b){return b[1]-a[1];});
+  if (top) entries = entries.slice(0, top);
+  var labels = entries.map(function(e){ return e[0].length>34? e[0].slice(0,32)+'…' : e[0]; });
+  var data = entries.map(function(e){ return pct ? Math.round(1000*e[1]/(freq.total||1))/10 : e[1]; });
+  return mkChart(canvasId, { type:'bar', data:{ labels:labels, datasets:[{label:pct?'%':'Respostas', data:data, backgroundColor:color}] },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      scales:{ x:{ beginAtZero:true, ticks: pct?{ callback:function(v){return v+'%';} }:undefined } },
+      plugins:{ legend:{display:false} } } });
+}
+function pie14Card(canvasId, dist, color){
+  if (!dist.total){ emptyCard(canvasId); return; }
+  var labels = ['Nota 1','Nota 2','Nota 3','Nota 4'];
+  var data = [dist.counts[1],dist.counts[2],dist.counts[3],dist.counts[4]];
+  return mkChart(canvasId, { type:'pie', data:{ labels:labels, datasets:[{ data:data, backgroundColor:distShades(color) }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:true, position:'right', labels:{boxWidth:10,font:{size:11}} } } } });
+}
+function triCategoryPieCard(canvasId, getterFn, color, opts){
+  var cats = ['Não me identifico nada','Me identifico Parcialmente','Me identifico totalmente'];
+  var counts = {}; cats.forEach(function(c){counts[c]=0;}); var total=0;
+  eachFilteredRow(function(c,r){ var v=(getterFn(c,r)||'').trim(); if(!v) return; if(counts[v]===undefined) counts[v]=0; counts[v]++; total++; }, opts);
+  if (!total){ emptyCard(canvasId); return; }
+  var data = cats.map(function(c){return counts[c]||0;});
+  return mkChart(canvasId, { type:'pie', data:{ labels:cats, datasets:[{data:data, backgroundColor:distShades(color)}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}}} } });
+}
+function lineChartCard(canvasId, labels, data, color){
+  if (!labels.length){ emptyCard(canvasId); return; }
+  return mkChart(canvasId, { type:'line', data:{ labels:labels, datasets:[{ label:'Membros', data:data, borderColor:color, backgroundColor:color+'33', fill:true, tension:.3 }] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }, plugins:{ legend:{display:false} } } });
+}
+function kpiCard(label, valueText, sub){
+  return '<div class="card kpi"><div class="label">'+label+'</div><div class="value">'+valueText+'</div><div class="sub">'+(sub||'')+'</div></div>';
+}
+function chartCard(canvasId, title, note, tall){
+  return '<div class="card chart-card"><h3>'+title+'</h3>'+(note?'<p class="note">'+note+'</p>':'')+'<div class="chart-wrap'+(tall?' tall':'')+'"><canvas id="'+canvasId+'"></canvas></div></div>';
+}
+function pageHeader(title, desc){ return '<h2 class="page-title">'+title+'</h2><p class="page-desc">'+desc+'</p>'; }
+
+/* ============================= PÁGINAS ====================================== */
+var PAGES = {};
+
+PAGES['v-dedic'] = function(){
+  var color = ORANGE;
+  var n = 0; eachFilteredRow(function(){n++;});
+  var mDesemp = distributionOf14(function(c,r){return numLin(c,r,'desemp');});
+  var avg = 0, cnt = 0; [1,2,3,4].forEach(function(k){ avg += k*mDesemp.counts[k]; cnt += mDesemp.counts[k]; });
+  var html = pageHeader('Dedicação, Desempenho &amp; Atividades Externas','Como os membros pretendem dividir seu tempo entre Fluxo, Projetos e atividades externas.') +
+    '<div class="grid kpis">' +
+      kpiCard('Respostas na seleção', n) +
+      kpiCard('Desempenho médio (Fluxo x Faculdade)', cnt ? (avg/cnt).toFixed(2)+' / 4' : '—') +
+    '</div>' +
+    '<div class="grid charts2">' +
+      chartCard('vd-horasFluxo','Pretensão de Horas Semanais — Fluxo','% de respostas em cada faixa de horas.') +
+      chartCard('vd-horasProj','Pretensão de Horas Semanais — Projetos','Só disponível a partir do ciclo Maio/26.') +
+      chartCard('vd-desemp','Desempenho Esperado: Fluxo x Faculdade','Distribuição das notas de 1 a 4.') +
+      chartCard('vd-ativRem','Realização de Atividade Remunerada','') +
+      chartCard('vd-busca','Busca de Atividade Remunerada','Em quanto tempo pretendem buscar uma atividade remunerada fora da Fluxo.') +
+      chartCard('vd-processo','Participação em Outro Processo Seletivo','') +
+      chartCard('vd-outraIniciativa','Participação em Outra Iniciativa da UFRJ','') +
+    '</div>';
+  document.getElementById('content').innerHTML = html;
+  freqCard('vd-horasFluxo', freqOf(function(c,r){return val(c,r,'horasFluxo');}), color, true);
+  freqCard('vd-horasProj', freqOf(function(c,r){return val(c,r,'horasProjetos');}), color, true);
+  pie14Card('vd-desemp', mDesemp, color);
+  freqCard('vd-ativRem', freqOf(function(c,r){return val(c,r,'ativRem');}), color, true);
+  freqCard('vd-busca', freqOf(function(c,r){return val(c,r,'buscaAtiv');}), color, true);
+  freqCard('vd-processo', freqOf(function(c,r){return val(c,r,'processoSel');}), color, true);
+  freqCard('vd-outraIniciativa', freqBinaryNaoOutro(function(c,r){return val(c,r,'outraIniciativa');}), color, true);
+};
+
+PAGES['v-saida'] = function(){
+  var color = ORANGE;
+  var html = pageHeader('Saída, Coordenação &amp; Diretorias','Previsão de saída e interesse em mudar de coordenação/diretoria.') +
+    '<div class="grid charts1">' + chartCard('vs-saidaMensal','Previsão de Saída de Membros (Mensal)','Quantidade de membros que pretendem sair, por mês/ano previsto (Q17).', true) + '</div>' +
+    '<div class="grid charts2">' +
+      chartCard('vs-motivosSaida','Motivos de Saída da Fluxo','Só disponível no ciclo Julho/26.') +
+      chartCard('vs-interesseCoord','Interesse em Atuar em Outra Coordenação','') +
+      chartCard('vs-quaisCoord','Quais Coordenações Têm Interesse','') +
+      chartCard('vs-motivosCoord','Motivos para Atuar em Outra Coordenação','') +
+      chartCard('vs-participaDiretoria','Participação Atual em Diretorias','Diretorias das quais a pessoa já faz parte hoje (Q39).') +
+      chartCard('vs-diretorias','Interesse em Diretorias','Diretorias em que a pessoa tem interesse de atuar (Q40) — inclui quem já participa de uma.') +
+    '</div>';
+  document.getElementById('content').innerHTML = html;
+  var s = monthlySeries('saidaData');
+  lineChartCard('vs-saidaMensal', s.labels, s.data, color);
+  freqCard('vs-motivosSaida', freqOf(function(c,r){return val(c,r,'motivosSaida');}, OPTS_MOTIVOS_SAIDA), color, true);
+  freqCard('vs-interesseCoord', freqOf(function(c,r){return val(c,r,'interesseOutraCoord');}), color, true);
+  freqCard('vs-quaisCoord', freqOf(function(c,r){return val(c,r,'quaisCoordInteresse');}, true), color, true);
+  freqCard('vs-motivosCoord', freqOf(function(c,r){return val(c,r,'motivosOutraCoord');}, true), color, true);
+  freqCard('vs-participaDiretoria', freqOf(function(c,r){return val(c,r,'participaDiretoria');}, true), color, true);
+  freqCard('vs-diretorias', freqOf(function(c,r){return val(c,r,'interesseOutraDiretoria');}, true), color, true);
+};
+
+PAGES['v-cargo'] = function(){
+  var color = ORANGE;
+  var html = pageHeader('Mudança de Cargo','Intenção, motivos e preparo para mudar de cargo.') +
+    '<div class="grid charts1">' + chartCard('vc-proxCargo','Interesse a Próximo Cargo','Cargo que cada pessoa pretende atingir em seguida (nomenclatura de Julho/26).', true) + '</div>' +
+    '<div class="grid charts1">' + chartCard('vc-proxCargoMensal','Previsão de Mudança de Cargo (Mensal)','Quantidade de pessoas que pretendem assumir o próximo cargo, por mês/ano previsto (Q32).', true) + '</div>' +
+    '<div class="grid charts2">' +
+      chartCard('vc-pretende','Pretensão a Mudar de Cargo','') +
+      chartCard('vc-motivoDesinteresse','Motivos da Pretensão / Dúvida','Só disponível no ciclo Julho/26.') +
+      chartCard('vc-melhoriaPrep','Melhorias na Preparação para Mudar de Cargo','Só disponível no ciclo Julho/26.') +
+      chartCard('vc-avaliaPrep','Avaliação da Preparação para o Próximo Cargo','Distribuição das notas de 1 a 4.') +
+      chartCard('vc-certeza','Certeza da Escolha do Próximo Cargo','') +
+      chartCard('vc-atrib','Conhecimento das Atribuições do Próximo Cargo','') +
+      chartCard('vc-meiosPrep','Conhecimento sobre Meios de Preparação','') +
+    '</div>';
+  document.getElementById('content').innerHTML = html;
+  freqCard('vc-proxCargo', freqOf(function(c,r){return proximoCargoCanon(c,r);}), color, false, 30);
+  var sp = monthlySeries('proximoCargoData');
+  lineChartCard('vc-proxCargoMensal', sp.labels, sp.data, color);
+  freqCard('vc-pretende', freqOf(function(c,r){return val(c,r,'pretendeMudar');}), color, true);
+  freqCard('vc-motivoDesinteresse', freqOf(function(c,r){return val(c,r,'motivoPretensao');}, true), color, true);
+  freqCard('vc-melhoriaPrep', freqOf(function(c,r){ return val(c,r,'melhoriaPrep1') || val(c,r,'melhoriaPrep2'); }, OPTS_MELHORIA_PREP), color, true);
+  pie14Card('vc-avaliaPrep', distributionOf14(function(c,r){return numLin(c,r,'avaliaPrep');}), color);
+  triCategoryPieCard('vc-certeza', function(c,r){return val(c,r,'certeza');}, color);
+  triCategoryPieCard('vc-atrib', function(c,r){return val(c,r,'conhecAtrib');}, color);
+  triCategoryPieCard('vc-meiosPrep', function(c,r){return val(c,r,'conhecPrep');}, color);
+};
+
+/* entries: [{name, cargoAtual}] — mostra o cargo atual da pessoa ao lado do nome, pra dar mais
+   contexto de quem é quem na listagem (ex.: "Fulano — hoje é Trainee"). */
+function renderNameList(containerId, entries){
+  var el = document.getElementById(containerId); if (!el) return;
+  if (!entries.length){ el.innerHTML = '<p class="note" style="margin:0;">Ninguém, na seleção atual.</p>'; return; }
+  el.innerHTML = '<ul class="freqlist">' + entries.map(function(e){
+    var name = escapeHtml(e.name||'(sem nome)');
+    var cargo = e.cargoAtual ? ' <span style="color:var(--muted);">— hoje é '+escapeHtml(e.cargoAtual)+'</span>' : '';
+    return '<li>'+name+cargo+'</li>';
+  }).join('') + '</ul>';
+}
+function cargoInterestBlockHtml(cargoLabel){
+  var s = slug(cargoLabel);
+  return '<div class="card" style="margin-bottom:14px;">' +
+    '<h3 style="margin:0 0 10px;">'+escapeHtml(cargoLabel)+'</h3>' +
+    '<div class="grid charts2">' +
+      chartCard('ai-pie-'+s, 'Nível de Interesse (%)', 'Distribuição das respostas de interesse neste cargo.') +
+      '<div class="card chart-card"><h3>Muito Interesse</h3><p class="note">Pessoas que marcaram "Tenho muito interesse".</p><div id="ai-list-muito-'+s+'"></div></div>' +
+      '<div class="card chart-card"><h3>Próximo Cargo</h3><p class="note">Pessoas que indicaram este como o próximo cargo pretendido.</p><div id="ai-list-prox-'+s+'"></div></div>' +
+    '</div></div>';
+}
+function renderCargoInterestBlock(cargoLabel){
+  var color = ORANGE;
+  var cyc = currentCycle(); if (!cyc) return;
+  var cats = ['Não tenho interesse','Tenho pouco interesse','Tenho interesse moderado','Tenho muito interesse'];
+  var counts = {}; cats.forEach(function(c){counts[c]=0;});
+  var total = 0, muito = [], proximos = [];
+  cyc.rows.forEach(function(row){
+    var name = (row[cyc.col.nome]||'').trim();
+    var cargoAtual = cargoAtualCanon(cyc,row) || val(cyc,row,'cargo');
+    var iv = (interestVal(cyc,row,cargoLabel)||'').trim();
+    if (iv){ if (counts[iv]===undefined) counts[iv]=0; counts[iv]++; total++; if (iv==='Tenho muito interesse') muito.push({name:name, cargoAtual:cargoAtual}); }
+    var prox = proximoCargoCanon(cyc,row);
+    if (prox && normCargoKey(prox)===normCargoKey(cargoLabel)) proximos.push({name:name, cargoAtual:cargoAtual});
+  });
+  var pieId = 'ai-pie-'+slug(cargoLabel);
+  if (!total){ emptyCard(pieId, 'Sem dados para este cargo neste ciclo.'); }
+  else {
+    var data = cats.map(function(c){ return Math.round(1000*(counts[c]||0)/total)/10; });
+    mkChart(pieId, { type:'pie', data:{ labels:cats, datasets:[{ data:data, backgroundColor:distShades(color) }] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}},
+          tooltip:{ callbacks:{ label:function(ctx){ return ctx.label+': '+ctx.parsed+'%'; } } } } } });
+  }
+  renderNameList('ai-list-muito-'+slug(cargoLabel), muito);
+  renderNameList('ai-list-prox-'+slug(cargoLabel), proximos);
+}
+PAGES['a-interesse'] = function(){
+  var fam = AREA_FAMILIES.filter(function(f){return f.id===STATE.areaFamily;})[0] || AREA_FAMILIES[0];
+  var html = pageHeader('Interesse por Cargo — '+fam.label, 'Nível de interesse, pessoas muito interessadas e quem já indicou cada cargo como próximo passo — cargo a cargo, dentro da área selecionada acima.');
+  html += '<div id="ai-blocks"></div>';
+  document.getElementById('content').innerHTML = html;
+  var blocksEl = document.getElementById('ai-blocks');
+  fam.cargos.forEach(function(cargoLabel){ blocksEl.innerHTML += cargoInterestBlockHtml(cargoLabel); });
+  fam.cargos.forEach(function(cargoLabel){ renderCargoInterestBlock(cargoLabel); });
+};
+
+function tableCardHtml(title, rows){
+  var body = rows.length ? rows.map(function(r){ return '<tr><td>'+escapeHtml(r.cargo)+'</td><td>'+escapeHtml(r.area)+'</td></tr>'; }).join('') :
+    '<tr><td colspan="2" style="color:var(--muted);">Nenhum.</td></tr>';
+  return '<div class="card chart-card" style="margin-top:14px;"><h3>'+title+'</h3>' +
+    '<table class="ftable"><thead><tr><th>Cargo</th><th>Área</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+function fieldRow(label, value){
+  return '<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--border);font-size:12.5px;">'+
+    '<span style="color:var(--muted);">'+escapeHtml(label)+'</span>'+
+    '<span style="text-align:right;font-weight:600;max-width:60%;">'+escapeHtml(value||'—')+'</span></div>';
+}
+function fieldSection(title, rowsHtml){
+  return '<div class="card chart-card" style="margin-bottom:14px;"><h3>'+escapeHtml(title)+'</h3>'+rowsHtml+'</div>';
+}
+PAGES['f-ficha'] = function(){
+  var cyc = currentCycle();
+  var nomeSel = singleSelected('nome');
+  var html = pageHeader('Fichamento Individual', 'Compilado de TODAS as respostas da AQC selecionada (ciclo acima) para o membro escolhido — sempre uma única AQC por vez. Campos que não existiam no formulário daquele ciclo aparecem como "—".');
+  if (!cyc || !nomeSel || !cyc.byName[nomeSel]){
+    html += '<div class="empty">Selecione um nome no filtro acima.</div>';
+    document.getElementById('content').innerHTML = html;
+    return;
+  }
+  var row = cyc.byName[nomeSel];
+  var cargoAtual = cargoAtualCanon(cyc,row) || val(cyc,row,'cargo');
+  var proxCargo = proximoCargoCanon(cyc,row) || val(cyc,row,'proximoCargo');
+  var vDesemp = numLin(cyc,row,'desemp');
+  var vPrep = numLin(cyc,row,'avaliaPrep');
+
+  html += '<div class="grid kpis">' +
+    kpiCard('PAME de Entrada', escapeHtml(val(cyc,row,'pame')||'—')) +
+    kpiCard('Área (Q4)', escapeHtml(AREA_Q4_DISPLAY[areaRaw(cyc,row)]||areaRaw(cyc,row)||'—')) +
+    kpiCard('Cargo Atual', escapeHtml(cargoAtual||'—')) +
+    kpiCard('Desempenho Fluxo x Faculdade', isNaN(vDesemp)?'—':vDesemp+' / 4') +
+  '</div>';
+
+  html += '<div class="grid charts2">';
+  html += fieldSection('Identificação',
+    fieldRow('PAME de entrada', val(cyc,row,'pame')) +
+    fieldRow('Área (Q4)', AREA_Q4_DISPLAY[areaRaw(cyc,row)]||areaRaw(cyc,row)) +
+    fieldRow('Cargo atual', cargoAtual)
+  );
+  html += fieldSection('Dedicação &amp; Atividades Externas',
+    fieldRow('Horas semanais — Fluxo', val(cyc,row,'horasFluxo')) +
+    fieldRow('Horas semanais — Projetos', val(cyc,row,'horasProjetos')) +
+    fieldRow('Desempenho Fluxo x Faculdade', isNaN(vDesemp)?'':vDesemp+' / 4') +
+    fieldRow('Atividade remunerada fora da Fluxo', val(cyc,row,'ativRem')) +
+    fieldRow('Já participou de processo seletivo', val(cyc,row,'processoSel')) +
+    fieldRow('Em quanto tempo pretende buscar', val(cyc,row,'buscaAtiv')) +
+    fieldRow('Faz parte de outra iniciativa da UFRJ', (function(){ var v=(val(cyc,row,'outraIniciativa')||'').trim(); if(!v) return ''; return v.toLowerCase()==='não' ? 'Não' : 'Sim'; })())
+  );
+  html += fieldSection('Saída da Fluxo',
+    fieldRow('Previsão de saída', val(cyc,row,'saidaData')) +
+    fieldRow('Motivos de saída', val(cyc,row,'motivosSaida'))
+  );
+  html += fieldSection('Coordenação &amp; Diretoria',
+    fieldRow('Interesse em outra coordenação', val(cyc,row,'interesseOutraCoord')) +
+    fieldRow('Quais coordenações', val(cyc,row,'quaisCoordInteresse')) +
+    fieldRow('Motivos (outra coordenação)', val(cyc,row,'motivosOutraCoord')) +
+    fieldRow('Participa de alguma diretoria', val(cyc,row,'participaDiretoria')) +
+    fieldRow('Interesse em outra diretoria', val(cyc,row,'interesseOutraDiretoria'))
+  );
+  html += fieldSection('Mudança de Cargo',
+    fieldRow('Pretende mudar de cargo', val(cyc,row,'pretendeMudar')) +
+    fieldRow('Motivo da pretensão/dúvida', val(cyc,row,'motivoPretensao')) +
+    fieldRow('O que ajudaria a se sentir preparado', val(cyc,row,'melhoriaPrep1') || val(cyc,row,'melhoriaPrep2')) +
+    fieldRow('Próximo cargo pretendido', proxCargo) +
+    fieldRow('Quando pretende mudar', val(cyc,row,'proximoCargoData')) +
+    fieldRow('Certeza da escolha do próximo cargo', val(cyc,row,'certeza')) +
+    fieldRow('Conhecimento das atribuições', val(cyc,row,'conhecAtrib')) +
+    fieldRow('Conhecimento dos meios de preparação', val(cyc,row,'conhecPrep')) +
+    fieldRow('Avaliação de preparo (nota)', isNaN(vPrep)?'':vPrep+' / 4')
+  );
+  html += '</div>';
+
+  var muito = [], moderado = [];
+  INTEREST_CARGO_LIST.forEach(function(label){
+    var iv = (interestVal(cyc,row,label)||'').trim();
+    var fam = familyOfCargo(label);
+    var areaLabel = fam ? fam.label : '—';
+    if (iv==='Tenho muito interesse') muito.push({cargo:label, area:areaLabel});
+    else if (iv==='Tenho interesse moderado') moderado.push({cargo:label, area:areaLabel});
+  });
+  html += tableCardHtml('Cargos de Muito Interesse', muito) + tableCardHtml('Cargos de Interesse Moderado', moderado);
+  document.getElementById('content').innerHTML = html;
+};
+
+/* ============================= RENDER ORCHESTRATION ========================= */
+var currentPage = 'v-dedic';
+function renderAll(){
+  destroyCharts();
+  document.getElementById('content').innerHTML = '';
+  buildCicloControl(); // reconstrói os chips de Ciclo a cada render, senão o "selecionado" visual trava no valor inicial
+  applyFilterBarForGroup(GROUP_OF_PAGE[currentPage]);
+  setupFilters();
+  var n = 0; eachFilteredRow(function(){ n++; });
+  var cLabel = (CYCLES.filter(function(c){return c.id===STATE.cicloId;})[0]||{}).label || '';
+  document.getElementById('nCount').textContent = n + ' respostas na seleção atual (' + cLabel + ')';
+  (PAGES[currentPage]||PAGES['v-dedic'])();
+}
+function setupNav(){
+  document.querySelectorAll('.nav-btn').forEach(function(btn){
+    btn.onclick = function(){
+      document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      currentPage = btn.getAttribute('data-page');
+      renderAll();
+    };
+  });
+}
+
+/* ============================= INIT ========================================= */
+function init(){
+  Promise.all(CYCLES.map(loadCycle)).then(function(results){
+    results.forEach(function(r){ STATE.cycles[r.id] = buildIndex(r); });
+    var footBits = results.map(function(r){ return r.label+': '+(r.error? 'erro ao carregar ('+r.error+')' : r.rows.length+' respostas'); });
+    document.getElementById('footNote').innerHTML =
+      'Fonte: planilhas de respostas do Google Forms (AQC), lidas ao vivo a cada abertura/recarregamento. '+footBits.join(' · ')+
+      '. O Dash sempre mostra <b>um único ciclo por vez</b> (selecione acima) — o formulário mudou bastante entre ciclos '+
+      '(só o ciclo Julho/26 tem as perguntas de Gênero/Orientação Sexual, Motivos de Saída e Melhorias de Preparação; '+
+      'a lista de Cargos também foi atualizada). Cargos e Próximos Cargos são sempre exibidos com a nomenclatura de Julho/26 — '+
+      'quando um ciclo antigo usa um nome de cargo que não existe mais nessa lista, o campo fica em branco.';
+    buildCicloControl();
+    setupNav();
+    renderAll();
+  }).catch(function(err){
+    document.getElementById('content').innerHTML = '<div class="empty">Não foi possível carregar os dados: '+String(err && err.message || err)+'</div>';
+  });
+}
+if (document.readyState === 'complete' || document.readyState === 'interactive'){ init(); } else { window.addEventListener('load', init); }
+
+})();
+</script>
+</body>
+</html>
